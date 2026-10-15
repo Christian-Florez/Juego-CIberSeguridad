@@ -1,0 +1,449 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Fortaleza Digital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: una sola consola arcade centrada. Escenario 2:3 con canvas, menús superpuestos y una línea de ayuda debajo. */
+:root {
+  --bg: #061a1a;
+  --panel: #0d2a2b;
+  --line: #1f5a58;
+  --fg: #e6fbf6;
+  --muted: #8fbdb6;
+  --accent: #ffd23f;
+  --on-accent: #1c1500;
+  --safe: #3ddc97;
+  --danger: #ff5d6c;
+  --info: #5ad1ff;
+  --font-display: "Silkscreen", "Courier New", monospace;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.5; padding-inline: 16px; padding-block: 12px 16px; }
+.app { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.stage { position: relative; width: min(100%, calc((100vh - 84px) * 0.6667)); width: min(100%, calc((100dvh - 84px) * 0.6667)); aspect-ratio: 2 / 3; border: 3px solid var(--line); border-radius: 6px; overflow: hidden; background: #08201f; box-shadow: 0 0 0 3px #08201f, 0 10px 40px rgba(0,0,0,.5); }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; cursor: crosshair; }
+.ov { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 12px; background: rgba(2, 14, 14, .86); overflow-y: auto; }
+.ov[hidden] { display: none; }
+.card { width: 100%; max-height: 100%; overflow-y: auto; background: var(--panel); border: 2px solid var(--line); border-radius: 6px; padding: 18px 16px; display: flex; flex-direction: column; gap: 12px; }
+.card.center { text-align: center; align-items: center; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; margin: 0; line-height: 1.15; text-wrap: balance; letter-spacing: .02em; }
+h1 { font-size: clamp(26px, 8vw, 38px); color: var(--accent); }
+h2 { font-size: clamp(20px, 6vw, 26px); }
+h3 { font-size: 14px; color: var(--accent); text-transform: uppercase; letter-spacing: .08em; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.kicker { font-family: var(--font-display); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--info); }
+.btn { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--fg); background: #12403f; border: 2px solid var(--line); border-radius: 4px; padding: 10px 16px; min-height: 46px; cursor: pointer; box-shadow: 0 4px 0 #082323; transition: transform .08s ease, box-shadow .08s ease; }
+.btn:hover { border-color: var(--info); }
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #082323; }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: #ffe88a; box-shadow: 0 4px 0 #8a6d00; }
+.btn.primary:active { box-shadow: 0 1px 0 #8a6d00; }
+.btn:focus-visible, .mini:focus-visible { outline: 3px solid var(--info); outline-offset: 2px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.stars { font-family: var(--font-display); letter-spacing: .1em; color: var(--accent); }
+.stars.big { font-size: 34px; }
+.stars .off { color: #2b5654; }
+ul.tips { margin: 0; padding-left: 18px; display: grid; gap: 6px; text-align: left; font-size: 15px; }
+ul.miss { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; text-align: left; font-size: 14px; }
+ul.miss li { border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; background: #0a2222; }
+.block { width: 100%; display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.score { font-family: var(--font-display); font-size: 28px; color: var(--fg); font-variant-numeric: tabular-nums; }
+.pair { border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; background: #0a2222; text-align: left; display: grid; gap: 2px; font-size: 14px; }
+.pair b { font-family: var(--font-display); font-size: 13px; letter-spacing: .04em; }
+.pair .arrow { color: var(--safe); font-weight: 600; }
+.below { width: min(100%, calc((100vh - 84px) * 0.6667)); width: min(100%, calc((100dvh - 84px) * 0.6667)); display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 13px; color: var(--muted); }
+.mini { font: inherit; font-size: 13px; color: var(--fg); background: transparent; border: 1px solid var(--line); border-radius: 4px; padding: 4px 10px; min-height: 32px; cursor: pointer; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+</style>
+
+<div class="app">
+  <div class="stage" id="stage">
+    <canvas id="cv" width="800" height="1200" aria-label="Pantalla del juego"></canvas>
+    <div class="ov" id="ov"></div>
+  </div>
+  <div class="below"><span id="hint">Toca una defensa y luego una casilla. Teclas 1 a 6, Espacio = oleada.</span><button class="mini" id="mute" type="button" aria-pressed="false">Sonido: sí</button></div>
+</div>
+
+<script>
+/* ============ Base ============ */
+const W = 400, H = 600, S = 2, GY = 40, CS = 50, COLS = 8, ROWS = 8;
+const C = { bg: "#08201f", grid: "#0f3332", path: "#16405a", text: "#e6fbf6", muted: "#8fbdb6", accent: "#ffd23f", safe: "#3ddc97", danger: "#ff5d6c", info: "#5ad1ff", panel: "#071a1a", line: "#1f5a58" };
+const DISP = '"Silkscreen","Courier New",monospace', MONO = '"IBM Plex Mono",ui-monospace,Menlo,monospace', BODY = '"IBM Plex Sans",system-ui,sans-serif';
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d"), OV = document.getElementById("ov");
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rnd = (a) => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+
+/* ---- Sprites pixel art ---- */
+const PAL = { w: "#ffffff", o: "#0b1324", e: "#ff5d6c" };
+const SPR = {
+  mail: ["########", "#w####w#", "##w##w##", "###ww###", "#..##..#", "#......#", "########"],
+  funnel: ["########", "#wwwwww#", ".######.", "..####..", "...##...", "...##...", "..####.."],
+  bug: ["#.#...#.#", ".#.###.#.", "..#####..", ".##w#w##.", "#.#####.#", "#..###..#", "..#...#..", ".#.....#."],
+  shieldx: ["########", "###ww###", "###ww###", "#wwwwww#", "#wwwwww#", "###ww###", ".##ww##.", "..####.."],
+  bolt: ["..#.", ".##.", "####", ".##.", ".#.."],
+  wall: ["..#..#..", ".##.###.", ".#######", "########", "#.##.##.", "########", "##.##.##", "########"],
+  key: [".####...", "#....#..", "#....#..", ".####...", "..#.....", "..###...", "..#.....", "..###..."],
+  phone: [".######.", ".#....#.", ".#.ww.#.", ".#.ww.#.", ".#....#.", ".#.##.#.", ".#....#.", ".######."],
+  lock: ["..####..", ".#....#.", ".#....#.", "########", "###ww###", "###ww###", "####w###", "########"],
+  gear: ["..#..#..", ".######.", "###..###", "#.#..#.#", "#.#..#.#", "###..###", ".######.", "..#..#.."],
+  mask: [".######.", "########", "#ww##ww#", "#wo##wo#", "########", ".#.##.#.", "..####.."],
+  cap: ["...##...", ".######.", "########", ".######.", "..#..#..", "..#..#..", "..####.."],
+  heart: [".##.##.", "#######", "#######", ".#####.", "..###..", "...#..."],
+  boss: ["....#######....", "...#########...", "..###########..", "..##.......##..", "..#.ee...ee.#..", "..##.......##..", "..###########..", ".#############.", "###############", "###.#######.###", "##...#####...##", "#.....###.....#"],
+  rack: ["########", "#.####.#", "#e.....#", "########", "#.####.#", "#e.....#", "########", "#.####.#"]
+};
+const sprCache = {};
+function sheet(name, color, scale) {
+  const k = name + color + scale; if (sprCache[k]) return sprCache[k];
+  const rows = SPR[name], c = document.createElement("canvas"), px = scale * S;
+  c.width = rows[0].length * px; c.height = rows.length * px;
+  const x = c.getContext("2d");
+  rows.forEach((row, j) => [...row].forEach((ch, i) => { if (ch === ".") return; const col = ch === "#" ? color : PAL[ch]; if (!col) return; x.fillStyle = col; x.fillRect(i * px, j * px, px, px); }));
+  return (sprCache[k] = c);
+}
+function spr(name, cx, cy, scale, color) {
+  const c = sheet(name, color || "#ffffff", scale), w = c.width / S, h = c.height / S;
+  ctx.imageSmoothingEnabled = false; ctx.drawImage(c, Math.round(cx - w / 2), Math.round(cy - h / 2), w, h);
+}
+
+/* ---- Texto y formas ---- */
+function T(s, x, y, size, col, al, f, wt) { ctx.font = `${wt || ""} ${size}px ${f || DISP}`.trim(); ctx.fillStyle = col; ctx.textAlign = al || "left"; ctx.textBaseline = "alphabetic"; ctx.fillText(s, x, y); }
+function wrap(s, maxW, size, f, wt) {
+  ctx.font = `${wt || ""} ${size}px ${f || BODY}`.trim();
+  const words = s.split(" "), out = []; let cur = "";
+  for (const w of words) { const t = cur ? cur + " " + w : w; if (ctx.measureText(t).width > maxW && cur) { out.push(cur); cur = w; } else cur = t; }
+  if (cur) out.push(cur); return out;
+}
+function fit(s, maxW, size, f, wt) { ctx.font = `${wt || ""} ${size}px ${f || BODY}`.trim(); if (ctx.measureText(s).width <= maxW) return s; while (s.length > 1 && ctx.measureText(s + "…").width > maxW) s = s.slice(0, -1); return s + "…"; }
+function rr(x, y, w, h, fill, stroke, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r === undefined ? 3 : r); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.stroke(); } }
+function lines(arr, x, y, lh, size, col, al, f, wt) { arr.forEach((l, i) => T(l, x, y + i * lh, size, col, al, f, wt)); }
+
+/* ---- Sonido ---- */
+let ac = null, muted = false;
+function sfxInit() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) { } } if (ac && ac.state === "suspended") ac.resume(); }
+function beep(f, d, type, v, slide) {
+  if (muted || !ac) return; d = d || .08;
+  const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+  o.type = type || "square"; o.frequency.setValueAtTime(f, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, f + slide), t + d);
+  g.gain.setValueAtTime(v || .05, t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + d);
+}
+const seq = (fs, step, type) => fs.forEach((f, i) => setTimeout(() => beep(f, .14, type || "square"), i * step));
+const sfx = {
+  shot() { beep(840, .04, "square", .015, -400); }, place() { seq([440, 660], 50, "triangle"); }, up() { seq([520, 700, 920], 55, "triangle"); },
+  kill() { beep(520, .07, "triangle", .05, 300); }, leak() { beep(150, .25, "sawtooth", .07, -80); }, no() { beep(200, .1, "square", .04, -60); },
+  wave() { seq([392, 523], 90); }, win() { seq([523, 659, 784, 1047], 110); }, lose() { seq([392, 330, 262, 196], 150, "sawtooth"); }, heal() { seq([600, 800, 1000], 60, "triangle"); }
+};
+document.getElementById("mute").addEventListener("click", (e) => { muted = !muted; e.target.textContent = "Sonido: " + (muted ? "no" : "sí"); e.target.setAttribute("aria-pressed", String(muted)); });
+
+/* ---- Partículas y textos flotantes ---- */
+let parts = [], floats = [], shake = 0, flash = null;
+function burst(x, y, col, n) { for (let i = 0; i < (n || 12); i++) { const a = Math.random() * 6.283, s = 30 + Math.random() * 120; parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0, life: .3 + Math.random() * .4, c: col, s: 2 + Math.random() * 3 }); } }
+function floatText(x, y, t, c) { floats.push({ x, y, t, c, age: 0 }); }
+function stepFx(dt) {
+  parts.forEach((p) => { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 200 * dt; }); parts = parts.filter((p) => p.t < p.life);
+  floats.forEach((f) => { f.age += dt; f.y -= 28 * dt; }); floats = floats.filter((f) => f.age < .8);
+  shake = Math.max(0, shake - dt * 1.6); if (flash) { flash.a -= dt * 2.4; if (flash.a <= 0) flash = null; }
+}
+function drawFx() {
+  parts.forEach((p) => { ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.c; ctx.fillRect(p.x, p.y, p.s, p.s); }); ctx.globalAlpha = 1;
+  floats.forEach((f) => { ctx.globalAlpha = 1 - f.age / .8; T(f.t, f.x, f.y, 12, f.c, "center"); }); ctx.globalAlpha = 1;
+  if (flash) { ctx.globalAlpha = Math.max(0, flash.a) * .3; ctx.fillStyle = flash.c; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+}
+
+/* ============ Datos del juego ============ */
+const TWK = ["mail", "av", "fw", "mfa", "patch", "edu"];
+const TW = {
+  mail: { n: "CORREO", full: "Filtro de correo", s: "funnel", c: "#ff9f43", cost: 50, range: 90, rate: .7, dmg: 14, what: "Revisa los remitentes y los enlaces de cada mensaje." },
+  av: { n: "ANTIVIR.", full: "Antivirus", s: "shieldx", c: "#ff5d6c", cost: 60, range: 90, rate: .8, dmg: 20, what: "Escanea los archivos y detecta programas maliciosos." },
+  fw: { n: "FIREWALL", full: "Firewall", s: "wall", c: "#ffd23f", cost: 70, range: 100, rate: .35, dmg: 8, splash: 26, what: "Filtra el tráfico de la red y frena las inundaciones de peticiones." },
+  mfa: { n: "2 PASOS", full: "Verificación en 2 pasos", s: "phone", c: "#b58cff", cost: 60, range: 90, rate: .8, dmg: 18, what: "Pide un segundo código aunque alguien robe tu clave." },
+  patch: { n: "PARCHE", full: "Parches y actualizaciones", s: "gear", c: "#5ad1ff", cost: 70, range: 90, rate: 1, dmg: 30, what: "Cierran las fallas conocidas del software." },
+  edu: { n: "EDUCAR", full: "Capacitación", s: "cap", c: "#ff7ac8", cost: 60, range: 90, rate: .8, dmg: 20, what: "Enseña a las personas a reconocer los engaños." }
+};
+const EN = {
+  phishing: { n: "PHISHING", s: "mail", sc: 3, c: "#ff9f43", hp: 40, sp: 55, rw: 12, lk: 1, d: "mail", desc: "Correos falsos que te engañan para que entregues tus datos.", real: "Se frena revisando los remitentes y los enlaces." },
+  virus: { n: "VIRUS", s: "bug", sc: 3, c: "#ff5d6c", hp: 70, sp: 42, rw: 15, lk: 1, d: "av", desc: "Programa malicioso que se esconde en archivos y descargas.", real: "Se frena escaneando los archivos." },
+  ddos: { n: "DDOS", s: "bolt", sc: 3, c: "#ffd23f", hp: 16, sp: 85, rw: 5, lk: .5, d: "fw", desc: "Miles de peticiones falsas que tumban un servicio.", real: "Se frena filtrando el tráfico de la red." },
+  robo: { n: "ROBO CLAVES", s: "key", sc: 3, c: "#b58cff", hp: 60, sp: 50, rw: 14, lk: 1, d: "mfa", desc: "Prueban claves filtradas en muchas cuentas hasta que una abre.", real: "Se frena pidiendo un segundo código además de la clave." },
+  exploit: { n: "EXPLOIT", s: "lock", sc: 3, c: "#5ad1ff", hp: 110, sp: 34, rw: 20, lk: 1, d: "patch", desc: "Aprovecha una falla del software que nadie ha corregido.", real: "Se frena instalando las actualizaciones a tiempo." },
+  social: { n: "INGENIERÍA SOCIAL", s: "mask", sc: 3, c: "#ff7ac8", hp: 90, sp: 44, rw: 18, lk: 1, d: "edu", desc: "Te manipulan por llamada o chat para que tú mismo abras la puerta.", real: "Se frena con personas que saben reconocer engaños." },
+  ransom: { n: "RANSOMWARE", s: "boss", sc: 5, c: "#ff3b5c", hp: 1400, sp: 20, rw: 200, lk: 10, d: null, boss: true, desc: "Cifra todos tus archivos y pide un rescate. Es el jefe final.", real: "Ninguna defensa sola alcanza: combina varias y ten copias de seguridad." }
+};
+const ENK = ["phishing", "virus", "ddos", "robo", "exploit", "social", "ransom"];
+const WAVES = [
+  [["phishing", 6, 1.3]],
+  [["phishing", 6, 1.1], ["virus", 3, 1.6]],
+  [["virus", 8, 1.2]],
+  [["ddos", 14, .45], ["phishing", 5, 1.2]],
+  [["robo", 8, 1.2], ["virus", 4, 1.3]],
+  [["exploit", 6, 1.8], ["ddos", 10, .4]],
+  [["social", 8, 1.2], ["robo", 6, 1.1]],
+  [["exploit", 5, 1.5], ["social", 6, 1.1], ["phishing", 8, .8], ["virus", 6, 1]],
+  [["ddos", 16, .35], ["robo", 8, .9], ["exploit", 5, 1.4], ["social", 6, 1], ["virus", 6, .9]],
+  [["ransom", 1, 1], ["phishing", 8, .9], ["virus", 8, .9], ["ddos", 12, .4], ["social", 5, 1.1]]
+];
+const MAXTW = 12, MAXLIVES = 20, BACKUP_COST = 120, BACKUP_HEAL = 5;
+
+/* ---- Camino ---- */
+const WP = [[-1, 1], [6, 1], [6, 3], [1, 3], [1, 5], [6, 5], [6, 7], [7, 7]];
+const PTS = WP.map(([c, r]) => ({ x: c * CS + CS / 2, y: GY + r * CS + CS / 2 }));
+const SEG = []; let TOT = 0;
+for (let i = 1; i < PTS.length; i++) { const a = PTS[i - 1], b = PTS[i], l = Math.hypot(b.x - a.x, b.y - a.y); SEG.push({ a, b, l, s: TOT }); TOT += l; }
+function posAt(d) { for (const s of SEG) { if (d <= s.s + s.l) { const f = (d - s.s) / s.l; return { x: s.a.x + (s.b.x - s.a.x) * f, y: s.a.y + (s.b.y - s.a.y) * f }; } } const e = PTS[PTS.length - 1]; return { x: e.x, y: e.y }; }
+const PATHSET = new Set();
+for (let i = 1; i < WP.length; i++) { let [c, r] = WP[i - 1]; const [c1, r1] = WP[i], dc = Math.sign(c1 - c), dr = Math.sign(r1 - r); for (;;) { PATHSET.add(c + "," + r); if (c === c1 && r === r1) break; c += dc; r += dr; } }
+
+/* ============ Estado ============ */
+let G = null, mode = "menu", T0 = 0, ptr = { x: 0, y: 0, active: false };
+function newGame() { G = { coins: 180, lives: MAXLIVES, wave: 0, sq: [], st: 0, en: [], tw: [], bl: [], speed: 1, sel: null, seen: {}, leaks: {}, kills: 0, roundOpen: false, tip: null, t: 0 }; say("Coloca defensas junto al camino. Los ataques van hacia el servidor.", C.info); }
+function say(t, c) { if (G) G.tip = { t, c: c || C.info, age: 0 }; }
+const lv = (tw, k) => [1, 1.6, 2.4][tw.lv - 1] * TW[tw.k][k];
+const rangeOf = (tw) => TW[tw.k].range + [0, 10, 20][tw.lv - 1];
+const upCost = (tw) => tw.lv === 1 ? Math.round(TW[tw.k].cost * .8) : tw.lv === 2 ? Math.round(TW[tw.k].cost * 1.2) : null;
+const sellVal = (tw) => Math.floor(tw.spent * .6);
+const mult = (tk, en) => en.boss ? 1 : (EN[en.k].d === tk ? 3 : .15);
+
+function callWave() {
+  if (mode !== "play" || G.sq.length || G.wave >= WAVES.length) return;
+  const w = G.wave++, q = [];
+  WAVES[w].forEach(([k, n, gap], gi) => { let at = gi * 2.2; for (let i = 0; i < n; i++) { q.push({ at, type: k, w: w + 1 }); at += gap; } });
+  q.sort((a, b) => a.at - b.at); G.sq = q; G.st = 0; G.roundOpen = true; sfx.wave(); say("OLEADA " + (w + 1) + " de " + WAVES.length, C.info);
+}
+function spawn(it) {
+  const d = EN[it.type], boss = !!d.boss, hp = boss ? d.hp : Math.round(d.hp * (1 + .1 * (it.w - 1)));
+  G.en.push({ k: it.type, hp, max: hp, d: -20, x: PTS[0].x, y: PTS[0].y, sp: d.sp, boss, fl: 0 });
+  if (!G.seen[it.type]) { G.seen[it.type] = 1; showThreat(it.type); }
+}
+function placeTower(k, c, r) {
+  const t = TW[k];
+  if (G.tw.length >= MAXTW) { sfx.no(); say("Máximo " + MAXTW + " defensas. Mejora las que tienes o vende una.", C.danger); return; }
+  if (G.coins < t.cost) { sfx.no(); say("Te faltan créditos para " + t.full + " ($" + t.cost + ").", C.danger); return; }
+  G.coins -= t.cost; const tw = { k, c, r, x: c * CS + CS / 2, y: GY + r * CS + CS / 2, lv: 1, cd: .2, spent: t.cost };
+  G.tw.push(tw); G.sel = { type: "tower", tw }; burst(tw.x, tw.y, t.c, 10); sfx.place();
+}
+function damage(en, amt, tk) {
+  if (en.hp <= 0) return; en.hp -= amt;
+  if (EN[en.k].d === tk && en.fl <= 0) { en.fl = .5; floatText(en.x, en.y - 14, "¡x3!", TW[tk].c); }
+  if (en.hp <= 0) { G.coins += EN[en.k].rw; G.kills++; burst(en.x, en.y, EN[en.k].c, en.boss ? 40 : 12); floatText(en.x, en.y, "+" + EN[en.k].rw, C.accent); sfx.kill(); if (en.boss) shake = .6; }
+}
+function leak(en) {
+  const d = EN[en.k]; en.hp = 0; en.gone = 1; G.lives = Math.max(0, G.lives - d.lk); shake = en.boss ? .8 : .3; flash = { c: C.danger, a: 1 };
+  const p = PTS[PTS.length - 1]; burst(p.x, p.y, C.danger, 18); sfx.leak(); G.leaks[en.k] = (G.leaks[en.k] || 0) + 1;
+  if (G.leaks[en.k] === 1) say("Se coló " + d.n + ". Te faltó: " + (d.d ? TW[d.d].full : "defensa en profundidad y copias de seguridad") + ".", C.danger);
+  if (G.lives <= 0) finish(false);
+}
+function pickTarget(tw) {
+  const R = rangeOf(tw); let best = null, bw = false;
+  for (const e of G.en) {
+    if (e.hp <= 0 || e.gone) continue; if (Math.hypot(e.x - tw.x, e.y - tw.y) > R) continue;
+    const weak = EN[e.k].d === tw.k;
+    if (!best || (weak && !bw) || (weak === bw && e.d > best.d)) { best = e; bw = weak; }
+  }
+  return best;
+}
+function update(dt) {
+  G.t += dt;
+  if (G.sq.length) { G.st += dt; while (G.sq.length && G.sq[0].at <= G.st && mode === "play") spawn(G.sq.shift()); if (mode !== "play") return; }
+  for (const e of G.en) {
+    if (e.hp <= 0 || e.gone) continue; e.d += e.sp * dt; e.fl = Math.max(0, e.fl - dt);
+    const p = posAt(Math.max(0, e.d)); e.x = p.x; e.y = p.y; if (e.d >= TOT) { leak(e); if (mode !== "play") return; }
+  }
+  for (const tw of G.tw) {
+    tw.cd -= dt; if (tw.cd > 0) continue; const tg = pickTarget(tw); if (!tg) continue;
+    tw.cd = TW[tw.k].rate; G.bl.push({ x: tw.x, y: tw.y, e: tg, dmg: lv(tw, "dmg"), k: tw.k, sp: TW[tw.k].splash }); sfx.shot();
+  }
+  for (const b of G.bl) {
+    const e = b.e; if (e.hp <= 0 || e.gone) { b.dead = 1; continue; }
+    const dx = e.x - b.x, dy = e.y - b.y, dist = Math.hypot(dx, dy), step = 300 * dt;
+    if (dist <= step + 4) {
+      b.dead = 1;
+      if (b.sp) { for (const o of G.en) if (o.hp > 0 && !o.gone && Math.hypot(o.x - e.x, o.y - e.y) <= b.sp) damage(o, b.dmg * mult(b.k, o), b.k); }
+      else damage(e, b.dmg * mult(b.k, e), b.k);
+    } else { b.x += dx / dist * step; b.y += dy / dist * step; }
+  }
+  G.bl = G.bl.filter((b) => !b.dead); G.en = G.en.filter((e) => e.hp > 0 && !e.gone);
+  if (mode !== "play") return;
+  if (!G.sq.length && !G.en.length) {
+    if (G.roundOpen) { G.roundOpen = false; const bonus = 40 + 5 * G.wave; G.coins += bonus; floatText(W / 2, GY + 8 * CS / 2, "Oleada superada +$" + bonus, C.accent); sfx.wave(); }
+    if (G.wave >= WAVES.length) finish(true);
+  }
+}
+
+/* ============ Dibujo ============ */
+const SHOP = TWK.map((k, i) => ({ k, x: 5 + i * 66, y: 504, w: 60, h: 58 }));
+const BTN = { wave: { x: 5, y: 568, w: 160, h: 28 }, speed: { x: 171, y: 568, w: 60, h: 28 }, bk: { x: 237, y: 568, w: 158, h: 28 } };
+const UPG = { x: W - 86, y: 450, w: 80, h: 22 }, SELL = { x: W - 86, y: 474, w: 80, h: 22 };
+const inR = (r, x, y) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+function button(r, label, col, dim, on) { rr(r.x, r.y, r.w, r.h, dim ? "#0a1f1f" : "#12403f", on ? C.accent : (dim ? "#173b3a" : col || C.line)); T(fit(label, r.w - 8, 10, DISP), r.x + r.w / 2, r.y + r.h / 2 + 4, 10, dim ? "#4e7873" : C.text, "center"); }
+function drawMap() {
+  ctx.fillStyle = C.bg; ctx.fillRect(0, GY, W, ROWS * CS);
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const x = c * CS, y = GY + r * CS;
+    if (PATHSET.has(c + "," + r)) { ctx.fillStyle = C.path; ctx.fillRect(x, y, CS, CS); }
+    else { ctx.fillStyle = (r + c) % 2 ? "#0b2b2a" : "#0d302f"; ctx.fillRect(x, y, CS, CS); }
+  }
+  const off = (G ? G.t : T0) * 40 % 28; ctx.fillStyle = "#2f7fb0";
+  for (let d = off; d < TOT; d += 28) { const p = posAt(d); ctx.fillRect(p.x - 2, p.y - 2, 4, 4); }
+  T("INTERNET", 4, GY + CS + 12, 9, "#6fb9d8");
+  const sv = PTS[PTS.length - 1]; spr("rack", sv.x, sv.y, 4, "#6b86c9"); T("SERVIDOR", sv.x, sv.y - 24, 8, C.accent, "center");
+}
+function drawTower(tw, ghost) {
+  const t = TW[tw.k]; spr(t.s, tw.x, tw.y, 3, t.c);
+  if (!ghost) for (let i = 0; i < tw.lv; i++) { ctx.fillStyle = C.accent; ctx.fillRect(tw.x - 9 + i * 7, tw.y + 17, 5, 4); }
+}
+function draw() {
+  ctx.setTransform(S, 0, 0, S, 0, 0); ctx.imageSmoothingEnabled = false; ctx.save();
+  if (shake > 0) ctx.translate((Math.random() - .5) * shake * 12, (Math.random() - .5) * shake * 12);
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H); drawMap();
+  if (G) {
+    const sel = G.sel && G.sel.type === "tower" ? G.sel.tw : null;
+    if (sel) { ctx.beginPath(); ctx.arc(sel.x, sel.y, rangeOf(sel), 0, 6.283); ctx.fillStyle = "rgba(255,255,255,.06)"; ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.lineWidth = 1; ctx.stroke(); ctx.strokeStyle = C.accent; ctx.lineWidth = 2; ctx.strokeRect(sel.c * CS + 2, GY + sel.r * CS + 2, CS - 4, CS - 4); }
+    G.tw.forEach((tw) => drawTower(tw));
+    G.en.forEach((e) => {
+      const d = EN[e.k]; spr(d.s, e.x, e.y, d.sc, d.c);
+      if (e.hp < e.max) { const w = e.boss ? 60 : 24, y = e.y - (e.boss ? 40 : 16); rr(e.x - w / 2, y, w, 4, "#0b1c1c", null, 1); rr(e.x - w / 2, y, w * clamp(e.hp / e.max, 0, 1), 4, e.boss ? C.danger : C.safe, null, 1); }
+    });
+    G.bl.forEach((b) => { ctx.fillStyle = TW[b.k].c; ctx.fillRect(b.x - 2, b.y - 2, 5, 5); });
+    if (G.sel && G.sel.type === "shop" && ptr.active && mode === "play") {
+      const c = Math.floor(ptr.x / CS), r = Math.floor((ptr.y - GY) / CS);
+      if (c >= 0 && c < COLS && r >= 0 && r < ROWS) {
+        const ok = !PATHSET.has(c + "," + r) && !G.tw.some((t) => t.c === c && t.r === r) && G.coins >= TW[G.sel.k].cost, x = c * CS + CS / 2, y = GY + r * CS + CS / 2;
+        ctx.beginPath(); ctx.arc(x, y, TW[G.sel.k].range, 0, 6.283); ctx.fillStyle = ok ? "rgba(61,220,151,.1)" : "rgba(255,93,108,.1)"; ctx.fill();
+        ctx.globalAlpha = .6; drawTower({ k: G.sel.k, x, y, lv: 1 }, true); ctx.globalAlpha = 1;
+        ctx.strokeStyle = ok ? C.safe : C.danger; ctx.lineWidth = 2; ctx.strokeRect(c * CS + 2, GY + r * CS + 2, CS - 4, CS - 4);
+      }
+    }
+  }
+  drawFx();
+  if (G) { drawPanel(); drawHud(); }
+  else { spr("rack", W / 2, 180, 8, "#6b86c9"); [["bug", 90, 360, "#ff5d6c"], ["mail", 300, 330, "#ff9f43"], ["key", 120, 450, "#b58cff"], ["mask", 310, 440, "#ff7ac8"]].forEach(([n, x, y, c], i) => spr(n, x, y + Math.sin(T0 * 2 + i) * 6, 5, c)); }
+  ctx.restore();
+}
+function drawHud() {
+  ctx.fillStyle = "#051414"; ctx.fillRect(0, 0, W, 34); ctx.fillStyle = C.line; ctx.fillRect(0, 34, W, 2);
+  T("OLEADA " + Math.min(G.wave, WAVES.length) + "/" + WAVES.length, 10, 22, 12, C.info);
+  T("$" + G.coins, W / 2 + 6, 23, 15, C.accent, "center");
+  spr("heart", W - 52, 17, 2, G.lives <= 6 ? C.danger : C.safe); T(String(Math.ceil(G.lives)), W - 10, 23, 14, C.text, "right");
+  if (G.tip) { const k = G.tip, ls = wrap(k.t, W - 36, 12, BODY, "600").slice(0, 2), h = 14 + ls.length * 16; ctx.globalAlpha = k.age > 3.4 ? Math.max(0, 1 - (k.age - 3.4) / .6) : 1; rr(8, 42, W - 16, h, "#071a1a", k.c); lines(ls, 18, 61, 16, 12, k.c, "left", BODY, "600"); ctx.globalAlpha = 1; }
+}
+function drawPanel() {
+  ctx.fillStyle = C.panel; ctx.fillRect(0, GY + ROWS * CS, W, H - GY - ROWS * CS); ctx.fillStyle = C.line; ctx.fillRect(0, GY + ROWS * CS, W, 2);
+  rr(4, 446, W - 8, 52, "#0a2222", C.line);
+  const s = G.sel; let title = "", body = "", col = C.text, tw = null, sk = null;
+  if (s && s.type === "tower") { tw = s.tw; const t = TW[tw.k]; title = t.full + " · nivel " + tw.lv; body = t.what; col = t.c; }
+  else if (s && s.type === "shop") { const t = TW[s.k]; title = t.full + " · $" + t.cost; body = t.what; col = t.c; sk = s.k; }
+  else { title = "Defiende el servidor"; body = G.wave === 0 ? "Elige una defensa abajo y toca una casilla libre. Luego pulsa OLEADA." : "Cada ataque tiene una defensa que le hace mucho más daño."; }
+  const tw2 = tw ? W - 106 : W - 24;
+  T(fit(title, tw2, 11, DISP), 12, 462, 11, col);
+  lines(wrap(body, tw2, 12, BODY).slice(0, 2), 12, 478, 15, 12, C.text, "left", BODY);
+  if (tw) {
+    const uc = upCost(tw); button(UPG, uc ? "MEJORAR $" + uc : "NIVEL MÁX", C.safe, !uc || G.coins < uc);
+    button(SELL, "VENDER $" + sellVal(tw), C.danger, false);
+  }
+  SHOP.forEach((b) => {
+    const t = TW[b.k], afford = G.coins >= t.cost, on = s && s.type === "shop" && s.k === b.k;
+    rr(b.x, b.y, b.w, b.h, on ? "#17504c" : "#0d2f2e", on ? C.accent : (afford ? t.c : "#173b3a")); ctx.globalAlpha = afford ? 1 : .4;
+    spr(t.s, b.x + b.w / 2, b.y + 22, 3, t.c); T(fit(t.n, b.w - 4, 9, DISP), b.x + b.w / 2, b.y + 45, 9, C.text, "center"); T("$" + t.cost, b.x + b.w / 2, b.y + 55, 9, C.accent, "center"); ctx.globalAlpha = 1;
+  });
+  const wl = G.wave >= WAVES.length ? "OLEADAS LISTAS" : G.sq.length ? "EN CURSO…" : "OLEADA " + (G.wave + 1) + " >>";
+  button(BTN.wave, wl, C.safe, G.sq.length > 0 || G.wave >= WAVES.length, false);
+  button(BTN.speed, "X" + G.speed, C.info, false, G.speed === 2);
+  button(BTN.bk, "BACKUP $" + BACKUP_COST + " +" + BACKUP_HEAL, C.info, G.lives >= MAXLIVES || G.coins < BACKUP_COST, false);
+}
+
+/* ============ Entrada ============ */
+function toXY(e) { const r = cv.getBoundingClientRect(); return { x: ((e.clientX - r.left) / r.width) * W, y: ((e.clientY - r.top) / r.height) * H }; }
+cv.addEventListener("pointermove", (e) => { const p = toXY(e); ptr.x = p.x; ptr.y = p.y; ptr.active = true; });
+cv.addEventListener("pointerleave", () => { ptr.active = false; });
+cv.addEventListener("pointerdown", (e) => { sfxInit(); const p = toXY(e); ptr.x = p.x; ptr.y = p.y; ptr.active = true; if (mode === "play") tap(p.x, p.y); });
+function tap(x, y) {
+  if (y >= GY && y < GY + ROWS * CS) {
+    const c = Math.floor(x / CS), r = Math.floor((y - GY) / CS), tw = G.tw.find((t) => t.c === c && t.r === r);
+    if (tw) { G.sel = { type: "tower", tw }; return; }
+    if (G.sel && G.sel.type === "shop" && !PATHSET.has(c + "," + r)) return placeTower(G.sel.k, c, r);
+    if (G.sel && G.sel.type === "shop" && PATHSET.has(c + "," + r)) { sfx.no(); say("Las defensas se colocan junto al camino, no encima.", C.danger); return; }
+    G.sel = null; return;
+  }
+  for (const b of SHOP) if (inR(b, x, y)) { G.sel = G.sel && G.sel.type === "shop" && G.sel.k === b.k ? null : { type: "shop", k: b.k }; return; }
+  if (G.sel && G.sel.type === "tower") {
+    const tw = G.sel.tw;
+    if (inR(UPG, x, y)) { const uc = upCost(tw); if (uc && G.coins >= uc) { G.coins -= uc; tw.spent += uc; tw.lv++; burst(tw.x, tw.y, C.accent, 14); sfx.up(); } else sfx.no(); return; }
+    if (inR(SELL, x, y)) { G.coins += sellVal(tw); G.tw = G.tw.filter((t) => t !== tw); G.sel = null; floatText(tw.x, tw.y, "+$" + sellVal(tw), C.accent); sfx.kill(); return; }
+  }
+  if (inR(BTN.wave, x, y)) return callWave();
+  if (inR(BTN.speed, x, y)) { G.speed = G.speed === 1 ? 2 : 1; return; }
+  if (inR(BTN.bk, x, y)) { if (G.lives < MAXLIVES && G.coins >= BACKUP_COST) { G.coins -= BACKUP_COST; G.lives = Math.min(MAXLIVES, G.lives + BACKUP_HEAL); sfx.heal(); floatText(W - 30, 56, "+" + BACKUP_HEAL, C.safe); say("Copia de seguridad restaurada: recuperas integridad.", C.safe); } else sfx.no(); return; }
+}
+addEventListener("keydown", (e) => {
+  if (!OV.hidden) { if (e.code === "Enter" && document.activeElement && document.activeElement.tagName !== "BUTTON") { const b = OV.querySelector(".btn.primary"); if (b) b.click(); } return; }
+  if (mode !== "play") return;
+  if (e.code === "Space") { e.preventDefault(); callWave(); }
+  else if (/^Digit[1-6]$/.test(e.code)) { const k = TWK[Number(e.code.slice(5)) - 1]; G.sel = { type: "shop", k }; }
+  else if (e.code === "Escape") G.sel = null;
+  else if (e.code === "KeyF") G.speed = G.speed === 1 ? 2 : 1;
+});
+
+/* ============ Pantallas ============ */
+function ov(html) { OV.innerHTML = html; OV.hidden = false; const b = OV.querySelector(".btn.primary"); if (b) b.focus({ preventScroll: true }); }
+function ovHide() { OV.hidden = true; OV.innerHTML = ""; }
+function showMenu() {
+  mode = "menu"; G = null; parts = []; floats = [];
+  ov(`<div class="card center"><span class="kicker">Ciberseguridad para 10° y 11°</span><h1>FORTALEZA DIGITAL</h1>
+  <p class="muted">Los atacantes van camino al servidor del colegio. Construye defensas junto al camino y frena 10 oleadas.</p>
+  <div class="block"><h3>Cómo se juega</h3><ul class="tips"><li>Elige una defensa abajo y toca una casilla libre.</li><li>Cada amenaza tiene una defensa real que le hace el triple de daño. Las demás casi no la afectan. Puedes tener hasta 12 defensas.</li><li>Gana créditos al derrotar ataques. Úsalos para mejorar defensas o hacer un backup.</li><li>Si la integridad llega a 0, el servidor cae.</li></ul></div>
+  <div class="row"><button class="btn primary" data-a="play" type="button">Jugar</button><button class="btn" data-a="manual" type="button">Manual</button></div></div>`);
+}
+function showManual() {
+  const rows = ENK.filter((k) => EN[k].d).map((k) => { const e = EN[k], t = TW[e.d]; return `<div class="pair"><b style="color:${e.c}">${e.n}</b><span>${e.desc}</span><span class="arrow">Defensa: ${t.full}. ${t.what}</span></div>`; }).join("");
+  ov(`<div class="card"><span class="kicker">Manual de defensa</span><h2>Amenaza y defensa</h2>${rows}
+  <div class="pair"><b style="color:${EN.ransom.c}">RANSOMWARE (jefe)</b><span>${EN.ransom.desc}</span><span class="arrow">${EN.ransom.real}</span></div>
+  <div class="row"><button class="btn primary" data-a="menu" type="button">Volver</button></div></div>`);
+}
+function showThreat(k) {
+  mode = "pause"; const e = EN[k], t = e.d ? TW[e.d] : null;
+  ov(`<div class="card"><span class="kicker">Nueva amenaza</span><h2 style="color:${e.c}">${e.n}</h2><p>${e.desc}</p>
+  <div class="pair"><b>Cómo se frena en la vida real</b><span class="arrow">${e.real}</span></div>
+  ${t ? "" : `<div class="pair"><b>Consejo</b><span>Todas tus defensas le hacen daño normal. Mejora las que tengas y usa el backup si se cuela.</span></div>`}
+  <div class="row"><button class="btn primary" data-a="resume" type="button">Entendido</button></div></div>`);
+}
+function startGame() { ovHide(); parts = []; floats = []; flash = null; shake = 0; newGame(); mode = "play"; sfxInit(); }
+function finish(win) {
+  if (mode === "end") return; mode = "end"; win ? sfx.win() : sfx.lose();
+  setTimeout(() => showEnd(win), 800);
+}
+function showEnd(win) {
+  const lives = Math.ceil(G.lives), stars = win ? (lives >= 15 ? 3 : lives >= 8 ? 2 : 1) : 0;
+  const leaks = Object.keys(G.leaks).map((k) => { const e = EN[k]; return `<li><b style="color:${e.c}">${e.n}</b> ×${G.leaks[k]}: ${e.d ? "te faltó " + TW[e.d].full + ". " + TW[e.d].what : e.real}</li>`; }).join("");
+  const recap = ENK.filter((k) => EN[k].d).map((k) => `<li><b>${EN[k].n}</b> → ${TW[EN[k].d].full}</li>`).join("");
+  ov(`<div class="card center"><span class="kicker">${win ? "Servidor a salvo" : "Servidor comprometido"}</span><h2>${win ? "¡Defensa exitosa!" : "Los atacantes entraron"}</h2>
+  ${win ? `<div class="stars big">${"★".repeat(stars)}<span class="off">${"★".repeat(3 - stars)}</span></div>` : ""}
+  <div class="score">${lives}/${MAXLIVES} integridad</div><p class="muted">Amenazas bloqueadas: ${G.kills}. Oleadas lanzadas: ${G.wave}/${WAVES.length}.</p>
+  ${leaks ? `<div class="block"><h3>Se te colaron</h3><ul class="miss">${leaks}</ul></div>` : ""}
+  <div class="block"><h3>Recuerda: amenaza → defensa</h3><ul class="tips">${recap}</ul></div>
+  <div class="block"><h3>Para conversar en clase</h3><ul class="tips"><li>¿Por qué una sola defensa no basta contra el ransomware?</li><li>¿Cuál de estas defensas ya usas tú todos los días?</li><li>¿Qué amenaza depende más de las personas que de la tecnología?</li></ul></div>
+  <div class="row"><button class="btn primary" data-a="play" type="button">${win ? "Jugar de nuevo" : "Reintentar"}</button><button class="btn" data-a="menu" type="button">Menú</button></div></div>`);
+}
+OV.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-a]"); if (!b) return; sfxInit(); const a = b.dataset.a;
+  if (a === "play") startGame(); else if (a === "menu") showMenu(); else if (a === "manual") showManual();
+  else if (a === "resume") { ovHide(); mode = "play"; }
+});
+
+/* ============ Bucle ============ */
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now; T0 += dt;
+  if (mode === "play" && G) { for (let i = 0; i < G.speed && mode === "play"; i++) update(dt); }
+  if (G && G.tip) { G.tip.age += dt; if (G.tip.age > 4) G.tip = null; }
+  stepFx(dt); draw(); requestAnimationFrame(frame);
+}
+showMenu(); requestAnimationFrame(frame);
+</script>
+
+</body></html>
